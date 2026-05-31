@@ -1,0 +1,49 @@
+# PromptForge — Docker Compose
+#
+# Quick start:
+#   copy .env.example .env   # add API keys
+#   docker compose up --build
+#
+# With bundled Ollama (local LLM, no cloud keys needed):
+#   docker compose --profile ollama up --build
+#   Then set in .env: OLLAMA_BASE_URL=http://ollama:11434
+
+services:
+  promptforge:
+    build: .
+    container_name: promptforge
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      LOCAL_STORAGE_PATH: /app/prompts
+      # Default: reach Ollama on the host machine (Docker Desktop)
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    volumes:
+      - promptforge-data:/app/prompts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_started
+        required: false
+
+  # Optional local LLM — enable with: docker compose --profile ollama up
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:latest
+    container_name: promptforge-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  promptforge-data:
+  ollama-data:

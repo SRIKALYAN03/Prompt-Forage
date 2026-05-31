@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptForge</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>PromptForge</h1>
+        <p>Open-source prompt engineering studio with guardrails</p>
+    </header>
+    <main>
+        <section id="prompt-form">
+            <label for="role">Role</label>
+            <select id="role">
+                <option value="senior_dev">Senior Developer</option>
+                <option value="junior_dev">Junior Developer</option>
+                <option value="product_manager">Product Manager</option>
+                <option value="executive">Executive</option>
+                <option value="data_scientist">Data Scientist</option>
+                <option value="teacher">Teacher</option>
+                <option value="devops">DevOps</option>
+            </select>
+
+            <label for="tone">Tone</label>
+            <select id="tone">
+                <option value="neutral">Neutral</option>
+                <option value="formal">Formal</option>
+                <option value="friendly">Friendly</option>
+                <option value="technical">Technical</option>
+                <option value="concise">Concise</option>
+                <option value="creative">Creative</option>
+            </select>
+
+            <label for="output-format">Output Format</label>
+            <select id="output-format">
+                <option value="plain_text">Plain Text</option>
+                <option value="bullet_points">Bullet Points</option>
+                <option value="numbered_list">Numbered List</option>
+                <option value="json">JSON</option>
+                <option value="markdown">Markdown</option>
+                <option value="table">Table</option>
+            </select>
+
+            <label for="provider">Provider</label>
+            <select id="provider">
+                <option value="anthropic">Anthropic</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama</option>
+            </select>
+
+            <label for="model">Model</label>
+            <input type="text" id="model" value="claude-haiku-4-5-20251001">
+
+            <label for="context">Context (optional)</label>
+            <textarea id="context" rows="3"></textarea>
+
+            <label for="user-message">Your Message</label>
+            <textarea id="user-message" rows="5" placeholder="Enter your prompt..."></textarea>
+
+            <label for="file-upload">Upload Document</label>
+            <input type="file" id="file-upload" accept=".pdf,.docx,.txt,image/*">
+
+            <button id="run-btn" type="button">Run Prompt</button>
+        </section>
+
+        <section id="results" class="hidden">
+            <h2>Results</h2>
+            <div id="score"></div>
+            <pre id="response"></pre>
+            <div id="violations"></div>
+            <button id="save-btn" type="button">Save Locally</button>
+        </section>
+    </main>
+    <script src="/static/app.js"></script>
+</body>
+</html>

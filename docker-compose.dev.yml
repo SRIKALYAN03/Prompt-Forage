@@ -1,0 +1,24 @@
+# Development override — hot reload + source mount
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  promptforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      [
+        "uvicorn",
+        "promptforge.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    volumes:
+      - ./promptforge:/app/promptforge
+      - ./frontend:/app/frontend
+      - promptforge-data:/app/prompts
+    environment:
+      DEBUG: "true"

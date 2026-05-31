@@ -1,0 +1,33 @@
+# Git & IDE
+.git
+.gitignore
+.cursor
+*.md
+!README.md
+
+# Secrets & local env
+.env
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local runtime data (mounted as volume instead)
+prompts/
+
+# Dev-only (not needed in image)
+tests/
+requirements-dev.txt
+Makefile
+mypy.ini
+CURSOR_INSTRUCTIONS.md
