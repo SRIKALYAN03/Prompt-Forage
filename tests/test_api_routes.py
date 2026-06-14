@@ -14,7 +14,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["version"] == "0.1.0"
+        assert data["version"] == "0.2.0"
 
 
 class TestRunEndpoint:
@@ -80,7 +80,11 @@ class TestUploadEndpoint:
     """Test /api/upload endpoint."""
 
     def test_upload_accepts_pdf(self, test_client, sample_pdf_bytes) -> None:
-        """POST /api/upload accepts PDF files."""
+        """POST /api/upload accepts PDF files (skipped if PyMuPDF unavailable)."""
+        from promptforge.core.context_extractor import _FITZ_AVAILABLE
+        if not _FITZ_AVAILABLE:
+            import pytest
+            pytest.skip("PyMuPDF not available on this system")
         response = test_client.post(
             "/api/upload",
             files={"file": ("test.pdf", sample_pdf_bytes, "application/pdf")},

@@ -1,79 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PromptForge</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptForge</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header>
-        <h1>PromptForge</h1>
-        <p>Open-source prompt engineering studio with guardrails</p>
-    </header>
-    <main>
-        <section id="prompt-form">
-            <label for="role">Role</label>
-            <select id="role">
-                <option value="senior_dev">Senior Developer</option>
-                <option value="junior_dev">Junior Developer</option>
-                <option value="product_manager">Product Manager</option>
-                <option value="executive">Executive</option>
-                <option value="data_scientist">Data Scientist</option>
-                <option value="teacher">Teacher</option>
-                <option value="devops">DevOps</option>
-            </select>
+  <div id="toast-container"></div>
 
-            <label for="tone">Tone</label>
-            <select id="tone">
-                <option value="neutral">Neutral</option>
-                <option value="formal">Formal</option>
-                <option value="friendly">Friendly</option>
-                <option value="technical">Technical</option>
-                <option value="concise">Concise</option>
-                <option value="creative">Creative</option>
-            </select>
+  <aside id="history-sidebar" class="hidden">
+    <div class="sidebar-header">
+      <h3>History</h3>
+      <button id="history-close" aria-label="Close">✕</button>
+    </div>
+    <ul id="history-list"></ul>
+  </aside>
 
-            <label for="output-format">Output Format</label>
-            <select id="output-format">
-                <option value="plain_text">Plain Text</option>
-                <option value="bullet_points">Bullet Points</option>
-                <option value="numbered_list">Numbered List</option>
-                <option value="json">JSON</option>
-                <option value="markdown">Markdown</option>
-                <option value="table">Table</option>
-            </select>
+  <header>
+    <div class="header-left">
+      <h1>PromptForge</h1>
+      <span class="tagline">Open-source prompt engineering studio</span>
+    </div>
+    <div class="header-right">
+      <button id="history-toggle" class="btn-ghost">☰ History</button>
+      <button id="theme-toggle" class="btn-ghost">🌙</button>
+    </div>
+  </header>
 
-            <label for="provider">Provider</label>
-            <select id="provider">
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-                <option value="ollama">Ollama</option>
-            </select>
+  <main>
+    <section id="prompt-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="role">Role</label>
+          <select id="role">
+            <option value="senior_dev">Senior Developer</option>
+            <option value="junior_dev">Junior Developer</option>
+            <option value="product_manager">Product Manager</option>
+            <option value="executive">Executive</option>
+            <option value="data_scientist">Data Scientist</option>
+            <option value="teacher">Teacher</option>
+            <option value="devops">DevOps</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tone">Tone</label>
+          <select id="tone">
+            <option value="neutral">Neutral</option>
+            <option value="formal">Formal</option>
+            <option value="friendly">Friendly</option>
+            <option value="technical">Technical</option>
+            <option value="concise">Concise</option>
+            <option value="creative">Creative</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="output-format">Format</label>
+          <select id="output-format">
+            <option value="plain_text">Plain Text</option>
+            <option value="bullet_points">Bullet Points</option>
+            <option value="numbered_list">Numbered List</option>
+            <option value="json">JSON</option>
+            <option value="markdown">Markdown</option>
+            <option value="table">Table</option>
+          </select>
+        </div>
+      </div>
 
-            <label for="model">Model</label>
-            <input type="text" id="model" value="claude-haiku-4-5-20251001">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="provider">Provider</label>
+          <select id="provider">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="ollama" selected>Ollama (Local)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="model">Model</label>
+          <input type="text" id="model" value="llama3.2" placeholder="e.g. llama3.2">
+        </div>
+      </div>
 
-            <label for="context">Context (optional)</label>
-            <textarea id="context" rows="3"></textarea>
+      <div class="form-group">
+        <label for="context">Context <span class="optional">(optional)</span></label>
+        <textarea id="context" rows="2" placeholder="Paste document context or upload a file below…"></textarea>
+      </div>
 
-            <label for="user-message">Your Message</label>
-            <textarea id="user-message" rows="5" placeholder="Enter your prompt..."></textarea>
+      <div class="form-group">
+        <label for="user-message">Your Prompt</label>
+        <textarea id="user-message" rows="5" placeholder="Enter your prompt here…"></textarea>
+        <div class="token-info"><span id="token-count">~0 tokens</span></div>
+      </div>
 
-            <label for="file-upload">Upload Document</label>
-            <input type="file" id="file-upload" accept=".pdf,.docx,.txt,image/*">
+      <div class="form-group">
+        <label for="file-upload">Upload Document <span class="optional">(PDF, DOCX, TXT, image)</span></label>
+        <input type="file" id="file-upload" accept=".pdf,.docx,.txt,image/*">
+      </div>
 
-            <button id="run-btn" type="button">Run Prompt</button>
-        </section>
+      <div class="form-actions">
+        <button id="run-btn" type="button" class="btn-primary">▶ Run Prompt</button>
+        <input type="text" id="save-name" placeholder="Save as name…" class="save-name-input">
+        <button id="save-btn" type="button" class="btn-secondary" disabled>💾 Save</button>
+      </div>
+    </section>
 
-        <section id="results" class="hidden">
-            <h2>Results</h2>
-            <div id="score"></div>
-            <pre id="response"></pre>
-            <div id="violations"></div>
-            <button id="save-btn" type="button">Save Locally</button>
-        </section>
-    </main>
-    <script src="/static/app.js"></script>
+    <section id="results" class="hidden">
+      <div class="results-header">
+        <h2>Results</h2>
+        <div class="score-pill" id="score-pill">—/100</div>
+      </div>
+
+      <details class="breakdown-panel" open>
+        <summary>Score Breakdown</summary>
+        <div id="score-breakdown"></div>
+      </details>
+
+      <div class="meta-bar" id="meta"></div>
+
+      <div id="violations"></div>
+
+      <div class="response-block">
+        <div class="response-label">Response</div>
+        <pre id="response"></pre>
+      </div>
+
+      <details class="breakdown-panel">
+        <summary>Comments</summary>
+        <div id="comment-list" class="comment-list"></div>
+        <div class="comment-form">
+          <input type="text" id="comment-author" placeholder="Your name (optional)">
+          <textarea id="comment-text" rows="2" placeholder="Add a comment…"></textarea>
+          <button id="comment-btn" type="button" class="btn-secondary">Add Comment</button>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
 </body>
 </html>

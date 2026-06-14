@@ -5,7 +5,12 @@ import base64
 import io
 from typing import Optional, Tuple
 
-import fitz
+try:
+    import fitz
+    _FITZ_AVAILABLE = True
+except (ImportError, OSError):
+    _FITZ_AVAILABLE = False
+
 from docx import Document
 from PIL import Image
 
@@ -24,6 +29,9 @@ async def extract_from_pdf(file_bytes: bytes) -> str:
     """
     if not file_bytes:
         raise ValueError("Empty file provided")
+
+    if not _FITZ_AVAILABLE:
+        raise ValueError("PyMuPDF is not available on this system")
 
     def _extract() -> str:
         doc = fitz.open(stream=file_bytes, filetype="pdf")

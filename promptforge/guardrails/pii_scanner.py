@@ -29,15 +29,22 @@ BLOCK_TYPES = {
 }
 
 
-def _scan_text(text: str) -> List[GuardrailViolation]:
+def _scan_text(
+    text: str,
+    extra_patterns: Optional[Dict[str, re.Pattern[str]]] = None,
+) -> List[GuardrailViolation]:
     """Scan text for all PII patterns and return violations."""
     violations: List[GuardrailViolation] = []
-    for pii_type, pattern in PII_PATTERNS.items():
+    all_patterns: Dict[str, re.Pattern[str]] = dict(PII_PATTERNS)
+    if extra_patterns:
+        all_patterns.update(extra_patterns)
+
+    for pii_type, pattern in all_patterns.items():
         matches = pattern.findall(text)
         if not matches:
             continue
         severity = "block" if pii_type in BLOCK_TYPES else "warn"
-        flat_matches: list[str] = []
+        flat_matches: List[str] = []
         for m in matches:
             if isinstance(m, tuple):
                 flat_matches.extend(m)
@@ -74,6 +81,18 @@ def redact_pii(text: str) -> str:
 class PIIScanner(BaseGuardrail):
     """Detects PII and sensitive credentials in text."""
 
+    def __init__(self, extra_patterns: Optional[List[str]] = None) -> None:
+        """
+        Initialize PIIScanner with optional extra regex patterns.
+
+        Args:
+            extra_patterns: Additional regex strings to scan for (severity: warn).
+        """
+        self._extra: Dict[str, re.Pattern[str]] = {}
+        if extra_patterns:
+            for i, pat in enumerate(extra_patterns):
+                self._extra[f"custom_{i}"] = re.compile(pat)
+
     @property
     def guardrail_id(self) -> str:
         """Return guardrail identifier."""
@@ -92,7 +111,7 @@ class PIIScanner(BaseGuardrail):
         combined = text
         if context:
             combined = f"{text}\n{context}"
-        violations = _scan_text(combined)
+        violations = _scan_text(combined, self._extra if self._extra else None)
         return GuardrailResult(
             guardrail_id=self.guardrail_id,
             passed=len(violations) == 0,
@@ -105,7 +124,7 @@ class PIIScanner(BaseGuardrail):
         original_request: Optional[str] = None,
     ) -> GuardrailResult:
         """Same PII scan on model output."""
-        violations = _scan_text(text)
+        violations = _scan_text(text, self._extra if self._extra else None)
         return GuardrailResult(
             guardrail_id=self.guardrail_id,
             passed=len(violations) == 0,

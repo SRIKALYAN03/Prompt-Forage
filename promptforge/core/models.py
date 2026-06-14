@@ -1,7 +1,7 @@
 """Pydantic models for the PromptForge application."""
 
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -60,6 +60,12 @@ class GuardrailConfig(BaseModel):
     pii_output_scan: bool = True
     bypass_detect: bool = True
     no_code: bool = False
+    # Phase 4 additions
+    custom_pii_patterns: List[str] = Field(default_factory=list)
+    blocked_topics: List[str] = Field(default_factory=list)
+    json_schema: Optional[Dict[str, Any]] = None
+    semantic_injection: bool = False
+    validate_json_output: bool = False
 
 
 class ProviderConfig(BaseModel):
@@ -128,7 +134,77 @@ class SavedPrompt(BaseModel):
     """A persisted prompt run with metadata."""
 
     id: str
-    name: Optional[str]
+    name: Optional[str] = None
     run_result: RunResult
     tags: List[str] = Field(default_factory=list)
     saved_at: str
+    # Phase 1: version tracking
+    version: int = 1
+    parent_id: Optional[str] = None
+    author: Optional[str] = None
+
+
+# ── Phase 2: Collaboration models ────────────────────────────────────────────
+
+class Comment(BaseModel):
+    """A comment attached to a saved prompt run."""
+
+    id: str
+    run_id: str
+    text: str
+    author: Optional[str] = None
+    created_at: str
+
+
+class PromptTemplate(BaseModel):
+    """A reusable prompt template with variable placeholders."""
+
+    id: str
+    name: str
+    template: str
+    variables: List[str] = Field(default_factory=list)
+    created_at: str
+
+
+class Project(BaseModel):
+    """A named collection of saved prompts."""
+
+    id: str
+    name: str
+    description: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    prompt_ids: List[str] = Field(default_factory=list)
+    created_at: str
+
+
+# ── Phase 2: Workflow models ──────────────────────────────────────────────────
+
+class BatchItem(BaseModel):
+    """A single item in a batch comparison request."""
+
+    provider_config: ProviderConfig
+    label: Optional[str] = None
+
+
+class BatchRequest(BaseModel):
+    """Run the same prompt against multiple providers for comparison."""
+
+    prompt_request: PromptRequest
+    providers: List[BatchItem]
+
+
+class ChainStep(BaseModel):
+    """A single step in a prompt chain."""
+
+    user_message: str
+    guardrail_config: GuardrailConfig = Field(default_factory=GuardrailConfig)
+    provider_config: ProviderConfig
+
+
+class ChainRequest(BaseModel):
+    """Sequential chain of prompts where each step can use the previous output."""
+
+    steps: List[ChainStep]
+    role: Role = Role.SENIOR_DEV
+    tone: Tone = Tone.NEUTRAL
+    output_format: OutputFormat = OutputFormat.PLAIN_TEXT

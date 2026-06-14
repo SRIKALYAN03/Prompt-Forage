@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     local_storage_path: str = "./prompts"
     github_token: Optional[str] = None
 
+    # Collaboration
+    webhook_url: Optional[str] = None
+
     @field_validator(
         "anthropic_api_key",
         "openai_api_key",
@@ -53,6 +56,7 @@ class Settings(BaseSettings):
         "custom_endpoint_key",
         "custom_endpoint_model",
         "github_token",
+        "webhook_url",
         mode="before",
     )
     @classmethod

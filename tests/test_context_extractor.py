@@ -5,6 +5,7 @@ import pytest
 
 from promptforge.core.context_extractor import (
     MAX_CONTEXT_CHARS,
+    _FITZ_AVAILABLE,
     extract_context,
     extract_from_docx,
     extract_from_image,
@@ -12,10 +13,15 @@ from promptforge.core.context_extractor import (
     extract_from_txt,
 )
 
+pytestmark_pdf = pytest.mark.skipif(
+    not _FITZ_AVAILABLE, reason="PyMuPDF not available on this system"
+)
+
 
 class TestPDFExtraction:
     """Test PDF text extraction."""
 
+    @pytestmark_pdf
     @pytest.mark.asyncio
     async def test_pdf_returns_non_empty(self, sample_pdf_bytes) -> None:
         """PDF extraction returns non-empty string."""
@@ -36,8 +42,9 @@ class TestDOCXExtraction:
     @pytest.mark.asyncio
     async def test_docx_extraction(self) -> None:
         """DOCX extraction from minimal docx bytes."""
-        from docx import Document
         import io
+
+        from docx import Document
 
         doc = Document()
         doc.add_paragraph("Hello from DOCX test document.")
@@ -63,8 +70,9 @@ class TestImageExtraction:
     @pytest.mark.asyncio
     async def test_image_returns_base64(self) -> None:
         """Image extraction returns base64 data URI."""
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         img = Image.new("RGB", (10, 10), color="red")
         buffer = io.BytesIO()
@@ -76,6 +84,7 @@ class TestImageExtraction:
 class TestExtractContext:
     """Test main extract_context dispatcher."""
 
+    @pytestmark_pdf
     @pytest.mark.asyncio
     async def test_pdf_dispatch(self, sample_pdf_bytes) -> None:
         """PDF files route to PDF extractor."""

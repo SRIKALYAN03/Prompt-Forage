@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from promptforge.core.models import (
     GuardrailViolation,
@@ -38,7 +38,11 @@ HALLUCINATION_SIGNALS = [
     re.compile(r"published in (the journal|nature|science|lancet)", re.I),
 ]
 
-TONE_KEYWORDS: dict[Tone, list[str]] = {
+CITATION_PATTERN = re.compile(
+    r"\baccording to\b|\bsource:|\bcited in\b|\bref:\b|\breference:\b", re.I
+)
+
+TONE_KEYWORDS: Dict[Tone, List[str]] = {
     Tone.FORMAL: ["furthermore", "therefore", "respectfully", "pursuant"],
     Tone.FRIENDLY: ["happy", "glad", "welcome", "feel free"],
     Tone.TECHNICAL: ["implementation", "architecture", "protocol", "algorithm"],
@@ -47,7 +51,7 @@ TONE_KEYWORDS: dict[Tone, list[str]] = {
     Tone.NEUTRAL: [],
 }
 
-FORMAT_INDICATORS: dict[OutputFormat, list[str]] = {
+FORMAT_INDICATORS: Dict[OutputFormat, List[str]] = {
     OutputFormat.BULLET_POINTS: ["- ", "* ", "• "],
     OutputFormat.NUMBERED_LIST: [r"^\d+\.", r"^\d+\)"],
     OutputFormat.JSON: ["{", "}"],
@@ -111,7 +115,9 @@ def score_run(
         elif indicator in response:
             format_in_response = True
             break
-    format_passed = format_in_prompt or format_in_response or output_format == OutputFormat.PLAIN_TEXT
+    format_passed = (
+        format_in_prompt or format_in_response or output_format == OutputFormat.PLAIN_TEXT
+    )
     format_points = 10 if format_passed else 0
     breakdown.append(ScoreBreakdown(check="has_format", points=format_points, passed=format_passed))
     total += format_points
@@ -125,10 +131,13 @@ def score_run(
     )
     total += length_points
 
-    # no_violations
+    # no_violations — penalise warns too (Phase 4 improvement)
     block_violations = [v for v in output_violations if v.severity == "block"]
+    warn_violations = [v for v in output_violations if v.severity == "warn"]
     violations_passed = len(block_violations) == 0
     violation_points = 20 if violations_passed else max(0, 20 - len(block_violations) * 10)
+    # Deduct up to 10 points for warnings
+    violation_points = max(0, violation_points - min(len(warn_violations) * 5, 10))
     breakdown.append(
         ScoreBreakdown(check="no_violations", points=violation_points, passed=violations_passed)
     )
@@ -145,6 +154,10 @@ def score_run(
         ScoreBreakdown(check="no_hallucination", points=hallu_points, passed=no_halluc_passed)
     )
     total += hallu_points
+
+    # Citation bonus (+5) — reward responses with explicit source attribution
+    if CITATION_PATTERN.search(response):
+        total += 5
 
     total = max(0, min(100, total))
     return total, breakdown

@@ -4,15 +4,16 @@ from typing import List, Optional, Tuple
 
 from promptforge.core.models import GuardrailConfig, GuardrailViolation
 from promptforge.guardrails.base import BaseGuardrail
+from promptforge.guardrails.content_policy import ContentPolicyGuard
 from promptforge.guardrails.hallucination_guard import (
     HallucinationGuard,
     get_uncertainty_system_injection,
 )
-from promptforge.guardrails.injection_guard import (
-    InjectionGuard,
-)
+from promptforge.guardrails.injection_guard import InjectionGuard
 from promptforge.guardrails.output_validator import OutputValidator
 from promptforge.guardrails.pii_scanner import PIIScanner
+from promptforge.guardrails.schema_validator import SchemaValidator
+from promptforge.guardrails.semantic_injection import SemanticInjectionGuard
 from promptforge.guardrails.token_limiter import TokenLimiter
 
 
@@ -35,18 +36,39 @@ class GuardrailOrchestrator:
 
     def _build_pipeline(self) -> None:
         """Build ordered list of active guardrails from config."""
+        # Custom PII patterns scanner (runs before default)
+        if self.config.custom_pii_patterns:
+            self.input_guardrails.append(
+                PIIScanner(extra_patterns=self.config.custom_pii_patterns)
+            )
+
         if self.config.pii_scan:
             self.input_guardrails.append(PIIScanner())
+
         if self.config.injection_detect:
             self._injection_guard = InjectionGuard()
             self.input_guardrails.append(self._injection_guard)
+
+        # Phase 4: semantic injection (opt-in)
+        if self.config.semantic_injection:
+            self.input_guardrails.append(SemanticInjectionGuard())
+
+        # Phase 4: content policy topic blocklist
+        if self.config.blocked_topics:
+            self.input_guardrails.append(
+                ContentPolicyGuard(self.config.blocked_topics)
+            )
+
         if self.config.token_limit:
             self.input_guardrails.append(TokenLimiter(self.config.token_limit))
+
         if self.config.hallucination_guard:
             self._hallucination_guard = HallucinationGuard()
 
+        # Output guardrails
         if self.config.pii_output_scan:
             self.output_guardrails.append(PIIScanner())
+
         if self.config.bypass_detect:
             self.output_guardrails.append(
                 OutputValidator(
@@ -54,10 +76,15 @@ class GuardrailOrchestrator:
                     check_bypass=True,
                 )
             )
+
         if self.config.hallucination_guard:
             if self._hallucination_guard is None:
                 self._hallucination_guard = HallucinationGuard()
             self.output_guardrails.append(self._hallucination_guard)
+
+        # Phase 4: JSON schema validation (opt-in)
+        if self.config.validate_json_output and self.config.json_schema:
+            self.output_guardrails.append(SchemaValidator(self.config.json_schema))
 
     async def run_input_checks(
         self,
